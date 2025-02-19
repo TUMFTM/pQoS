@@ -91,7 +91,7 @@ input_features = [
     'speed_kmh', 'PCell_RSRP', 'PCell_RSRQ',
     'PCell_RSSI', 'PCell_SNR_2', 'PCell_Uplink_Num_RBs',
     'PCell_Uplink_TB_Size', 'PCell_Uplink_frequency',
-    'PCell_Uplink_bandwidth_MHz',# ping
+    'PCell_Uplink_bandwidth_MHz',# ping 
 ]
 
 df_input_lags = pd.DataFrame(index=df.index)
