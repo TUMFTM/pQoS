@@ -118,6 +118,4 @@ if __name__ == "__main__":
 
     eval(model, X_eval, y_eval, eval_dataloader, "UL", model_params)
 
-    pdb.set_trace()
-
     sys.exit(0)
