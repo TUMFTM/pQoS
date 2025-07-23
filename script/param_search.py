@@ -1,6 +1,7 @@
 import sys
 
 import numpy as np
+import pandas as pd
 
 from train import train
 from eval import eval
@@ -93,9 +94,13 @@ def main():
     )
 
     search.fit(
-        X, y
+        X, y,
+        verbose=2
     )
     print("Searching finished")
+
+    results = pd.DataFrame(search.cv_results_)
+    
 
 if __name__=="__main__":
     main()
