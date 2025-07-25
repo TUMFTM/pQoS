@@ -55,7 +55,7 @@ class LocationKPIServiceServer:
         self.radio_map_uplink = {}
         self.load_yaml_config(config_file_path)
         #### insert here the path of teh file containing the radio map data
-        self.load_csv_data('data/radio_map_train_new.csv')
+        self.load_csv_data('data/radio_map_train.csv')
 
     def load_yaml_config(self, config_file_path):
         try:
@@ -109,14 +109,6 @@ class LocationKPIServiceServer:
         else:
             return 10.3
 
-    # def parse_value(self, value_str):
-    #     try:
-    #         val_str = str(value_str).strip()
-    #         if not val_str or val_str.lower() == 'ms':
-    #             return float('nan')
-    #         return float(val_str.split()[0])  # Remove unit if present
-    #     except ValueError:
-    #         return float('nan')
 
     def handle_request(self, type, csv_file_path):
         df = pd.read_csv(csv_file_path)
@@ -140,12 +132,12 @@ class LocationKPIServiceServer:
         else:
             predicted_values = []  # Default empty list in case of an invalid type
         # pdb.set_trace()
-        df[f'{type}_prediction_new'] = predicted_values[:,0]
+        df[f'{type}_prediction'] = predicted_values[:,0]
         df[f'{type}_difference'] = predicted_values[:,0] - true_values
-        df[f'RSRP_prediction_new'] = predicted_values[:,1]
-        df[f'RSRQ_prediction_new'] = predicted_values[:,2]
-        df[f'SINR_prediction_new'] = predicted_values[:,3]
-        df[f'CQI_prediction_new'] = predicted_values[:,4]
+        df[f'RSRP_prediction'] = predicted_values[:,1]
+        df[f'RSRQ_prediction'] = predicted_values[:,2]
+        df[f'SINR_prediction'] = predicted_values[:,3]
+        df[f'CQI_prediction'] = predicted_values[:,4]
         # Write the updated DataFrame back to the same CSV file
         df.to_csv(csv_file_path, index=False)
 
@@ -442,7 +434,7 @@ class LocationKPIServiceServer:
         # Apply parse_value only to the true values (data_type column) that have "ms"
         df[data_type] = df[data_type].apply(self.parse_value)
         # Calculate the absolute error between true values and predictions
-        abs_error = abs(df[data_type] - df[f'{data_type}_prediction_new'])
+        abs_error = abs(df[data_type] - df[f'{data_type}_prediction'])
         # Plotting
         fig, ax = plt.subplots(figsize=(10, 8))
         # Scatter plot with longitude and latitude, colored by absolute error
@@ -469,7 +461,7 @@ class LocationKPIServiceServer:
         df[data_type] = df[data_type].apply(self.parse_value)
         # Extract true values and predictions
         true_values = df[data_type]
-        pred_k1 = df[f'{data_type}_prediction_new']
+        pred_k1 = df[f'{data_type}_prediction']
         # Calculate latency difference (True - Predicted)
         latency_diff = true_values - pred_k1
         # Plotting
@@ -501,10 +493,10 @@ class LocationKPIServiceServer:
         df = pd.read_csv(csv_file_path)
         # Apply parse_value to the true values to remove 'ms' and convert to numerical values
         df[data_type] = df[data_type].apply(self.parse_value)
-        df[f'{data_type}_prediction_new'] = df[f'{data_type}_prediction_new'].apply(self.parse_value)
+        df[f'{data_type}_prediction'] = df[f'{data_type}_prediction'].apply(self.parse_value)
         # Extract true values and predictions
         true_values = df[data_type]
-        pred_k1 = df[f'{data_type}_prediction_new']
+        pred_k1 = df[f'{data_type}_prediction']
         # Plotting the true vs predicted values
         plt.figure(figsize=(10, 8))  # Set a larger figure size
         # Scatter plot for true values (blue)
@@ -536,10 +528,10 @@ class LocationKPIServiceServer:
         df = pd.read_csv(csv_file_path)
         # Apply parse_value to the true values to remove 'ms' and convert to numerical values
         df[data_type] = df[data_type].apply(self.parse_value)
-        df[f'{data_type}_prediction_new'] = df[f'{data_type}_prediction_new'].apply(self.parse_value)
+        df[f'{data_type}_prediction'] = df[f'{data_type}_prediction'].apply(self.parse_value)
         # Extract true values and predictions
         true_values = df[data_type]
-        pred_k1 = df[f'{data_type}_prediction_new']
+        pred_k1 = df[f'{data_type}_prediction']
         # Plotting the true vs predicted values
         plt.figure(figsize=(8, 5))  # Set a larger figure size
         # Scatter plot for true values (blue)
@@ -564,10 +556,10 @@ class LocationKPIServiceServer:
         df = pd.read_csv(csv_file_path)
         # Apply parse_value to the true values (data_type column) to remove 'ms' and convert to numerical values
         df[data_type] = df[data_type].apply(self.parse_value)
-        df[f'{data_type}_prediction_new'] = df[f'{data_type}_prediction_new'].apply(self.parse_value)
+        df[f'{data_type}_prediction'] = df[f'{data_type}_prediction'].apply(self.parse_value)
         # Calculate prediction errors (True - Predicted)
         true_values = df[data_type]
-        predicted_values = df[f'{data_type}_prediction_new']
+        predicted_values = df[f'{data_type}_prediction']
         prediction_error = true_values - predicted_values
         # Plotting the error distribution
         plt.figure(figsize=(12, 8))  # Increase figure size for better clarity
@@ -595,7 +587,7 @@ class LocationKPIServiceServer:
         df = pd.read_csv(csv_file_path)
         # Clean and convert the true values (data_type) and predicted values
         true_values = df[data_type].apply(self.parse_value)  # Assuming parse_value cleans 'ms' or other unwanted text
-        predicted_values = df[f'{data_type}_prediction_new']  # Predicted values
+        predicted_values = df[f'{data_type}_prediction']  # Predicted values
         # Calculate Mean and Standard Deviation of errors
         mean_error = np.mean(true_values - predicted_values)
         std_error = np.std(true_values - predicted_values)
@@ -618,16 +610,16 @@ class LocationKPIServiceServer:
         df = pd.read_csv(csv_file_path)
         # Apply parse_value to the true values to remove 'ms' and convert to numerical values
         df[data_type] = df[data_type].apply(self.parse_value)
-        df[f'{data_type}_prediction_new'] = df[f'{data_type}_prediction_new'].apply(self.parse_value)
+        df[f'{data_type}_prediction'] = df[f'{data_type}_prediction'].apply(self.parse_value)
         # Classification logic based on the thresholds
         if data_type == 'latency':
             # Classify as 0 (red) if latency > 200ms, else 1 (green)
             df['true_class'] = df[data_type].apply(lambda x: 0 if x <= 200 else 1)
-            df['pred_class'] = df[f'{data_type}_prediction_new'].apply(lambda x: 0 if x <= 200 else 1)
+            df['pred_class'] = df[f'{data_type}_prediction'].apply(lambda x: 0 if x <= 200 else 1)
         elif data_type == 'UL':
             # Classify as 0 (red) if uplink < 6, else 1 (green)
             df['true_class'] = df[data_type].apply(lambda x: 0 if x >= 6 else 1)
-            df['pred_class'] = df[f'{data_type}_prediction_new'].apply(lambda x: 0 if x >= 6 else 1)
+            df['pred_class'] = df[f'{data_type}_prediction'].apply(lambda x: 0 if x >= 6 else 1)
        # Count the number of red (bad) values for true and predicted classifications
         # Calculate True Positives (both true and predicted are red)
         true_positives = len(df[(df['true_class'] == 1) & (df['pred_class'] == 1)])
@@ -662,11 +654,11 @@ class LocationKPIServiceServer:
         
         # Apply parse_value to the true values to remove 'ms' and convert to numerical values
         df[data_type] = df[data_type].apply(self.parse_value)
-        df[f'{data_type}_prediction_new'] = df[f'{data_type}_prediction_new'].apply(self.parse_value)
+        df[f'{data_type}_prediction'] = df[f'{data_type}_prediction'].apply(self.parse_value)
         
         # Extract true values and predictions
         true_values = df[data_type]
-        pred_k1 = df[f'{data_type}_prediction_new']
+        pred_k1 = df[f'{data_type}_prediction']
         
         # Create figure and subplots
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(14, 6))  # Two subplots side by side
@@ -733,14 +725,14 @@ class LocationKPIServiceServer:
             # Calculate metrics
             df = pd.read_csv(csv_file_path)
             true_values = df[data_type].apply(server.parse_value)
-            predicted_values = df[f'{data_type}_prediction_new']
+            predicted_values = df[f'{data_type}_prediction']
             # Classification logic based on the thresholds
             if data_type == 'latency':
                 df['true_class'] = df[data_type].apply(lambda x: 1 if x <= 200 else 0)
-                df['pred_class'] = df[f'{data_type}_prediction_new'].apply(lambda x: 1 if x <= 200 else 0)
+                df['pred_class'] = df[f'{data_type}_prediction'].apply(lambda x: 1 if x <= 200 else 0)
             elif data_type == 'UL':
                 df['true_class'] = df[data_type].apply(lambda x: 1 if x >= 6 else 0)
-                df['pred_class'] = df[f'{data_type}_prediction_new'].apply(lambda x: 1 if x >= 6 else 0)
+                df['pred_class'] = df[f'{data_type}_prediction'].apply(lambda x: 1 if x >= 6 else 0)
             # Calculate classification accuracy (percentage of correct classifications)
             correct_classifications = df[df['true_class'] == df['pred_class']]
             classification_accuracy = len(correct_classifications) / len(df)    
