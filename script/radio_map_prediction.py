@@ -796,7 +796,7 @@ if __name__ == "__main__":
     kpi_type = input("Enter the KPI type ('Latency' or 'UL'): ")
 
     ### insert file containing the data to be predicted(timestamp, latitude, longitude)
-    csv_file_path = 'data/difference_prediction/radio_map_train_latency.csv'
+    csv_file_path = 'data/paper/radio_map_source.csv'
 
     # Process the request (input from CSV file and add predictions to the same file)
     server.handle_request(kpi_type, csv_file_path)

@@ -65,11 +65,10 @@ def main():
         "RSRP_prediction", "RSRQ_prediction", "SINR_prediction", "CQI_prediction"
     ]
     input_features = [
-        # 'Latitude', 'Longitude',
+        'Latitude', 'Longitude',
         'Latency', 'TXbitrate',
         'RSRQ', 'RSRP', 'SINR', "CQI", 
-        "Latency_prediction", "Latency_difference", 
-        # "RSRP_prediction_new", "RSRQ_prediction_new", "SINR_prediction_new", "CQI_prediction_new"
+        "Latency_prediction", "Latency_difference"
     ]
     target_features = ["Latency_difference"]
 
