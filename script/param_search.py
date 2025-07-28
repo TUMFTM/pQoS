@@ -1,37 +1,13 @@
 import sys
 
-import numpy as np
-import pandas as pd
-
-from train import train
-from eval import eval
+from eval import eval_difference
 from dataloader import DataLoader
-
-from scipy.stats import randint, loguniform, uniform
-from sklearn.model_selection import RandomizedSearchCV, PredefinedSplit
-from sklearn.metrics import mean_squared_error, make_scorer
-from xgboost import XGBRegressor
-from xgboost.callback import EarlyStopping
-from sklearn.multioutput import MultiOutputRegressor
-   
-def neg_mean_mse(y_true, y_pred):
-    return -mean_squared_error(y_true, y_pred, multioutput='raw_values').mean()
+from train import train
 
 def main():
-    param_dist = {
-        "estimator__n_estimators":      randint(200, 2000),
-        "estimator__learning_rate":     loguniform(0.005, 0.3),
-        "estimator__max_depth":         randint(3, 12),
-        "estimator__min_child_weight":  randint(1, 20),
-        "estimator__gamma":             loguniform(1e-3, 2),
-        "estimator__subsample":         uniform(0.5, 1.0),
-        "estimator__colsample_bytree":  uniform(0.5, 1.0),
-        "estimator__reg_alpha":         loguniform(1e-3, 100),
-        "estimator__reg_lambda":        loguniform(0.1, 1000),
-        "estimator__max_bin":           randint(64, 512)
-    }
-
-    ### UL ###
+    ######################
+    # Param search for UL
+    ######################
     num_cols = [
         'Latitude', 'Longitude',
         'RSRQ', 'RSRP', 'SINR', "CQI",
@@ -43,64 +19,94 @@ def main():
         'Latitude', 'Longitude',
         'RSRQ', 'RSRP', 'SINR', "CQI"
     ]
-
     target_features = ["UL_difference"]
 
-    train_dataloader = DataLoader.load_from_csv("data/difference_prediction/uplink_train.csv", num_cols)
+    best_performer = dict()
 
-    X_train, y_train = train_dataloader.process(input_features, target_features, 60, 60)
+    for lags, steps in [(10, 10), (20, 10), (30, 10), (60, 10), (20, 20), (30, 20), (60, 20), (30, 30), (60, 30), (60, 60)]:
+        train_dataloader = DataLoader.load_from_csv("data/difference_prediction/uplink_train.csv", num_cols)
+        X_train, y_train = train_dataloader.process(input_features, target_features, lags, steps)
 
-    # Train data in the form of tuple (X_train, y_train)
-    train_data = train_dataloader.process(input_features, target_features, 60, 60)
+        eval_dataloader = DataLoader.load_from_csv("data/difference_prediction/uplink_eval_route_1.csv", num_cols, train_dataloader.imputer, train_dataloader.scaler)
+        X_eval, y_eval = eval_dataloader.process(input_features, target_features, lags, steps)
+        for n_estimators in [100, 200, 500, 1000, 2000]:
+            for max_depth in [4, 6, 8, 10]:
 
-    eval_dataloader = DataLoader.load_from_csv("data/difference_prediction/uplink_eval_route_2.csv", num_cols, train_dataloader.imputer, train_dataloader.scaler)
+                model_params = {
+                    "n_estimators": n_estimators,
+                    "max_depth": max_depth,
+                    "tree_method": "hist",
+                    "random_state": 42,
+                    "learning_rate": 0.1,
+                    "mode": "UL", 
+                    "lags": lags, 
+                    "steps": steps,
+                    "model_dir": "./model"
+                }
 
-    X_eval, y_eval = eval_dataloader.process(input_features, target_features, 60, 60)
+                print("Model Training...")
 
+                model = train(X_train, y_train, model_params)
 
-    ### Searching ###
-    print("Start searching...")
+                _, _, _, mae_values, _, _ = eval_difference(model, X_eval, y_eval, eval_dataloader, "UL", model_params)
 
-    # 1. Combine train & eval to let PredefinedSplit control splits
-    X = np.vstack([X_train, X_eval])
-    y = np.vstack([y_train, y_eval])
-
-    test_fold = np.concatenate([
-        -1 * np.ones(len(X_train), dtype=int),   # -1 => always train
-        0 * np.ones(len(X_eval), dtype=int)     #  0 => test fold index 0
-    ])
-    ps = PredefinedSplit(test_fold)
-
-
-    base_model = XGBRegressor(
-        tree_method="hist",
-        random_state=42,
-        objective="reg:squarederror"
-    )
-
-    model = MultiOutputRegressor(base_model)
-
-    scorer = make_scorer(neg_mean_mse, greater_is_better=True)
-
-    search = RandomizedSearchCV(
-        estimator=model,
-        param_distributions=param_dist,
-        n_iter=60,
-        scoring=scorer,
-        cv=ps,
-        verbose=1,
-        n_jobs=-1,
-        refit=True  # keep best model
-    )
-
-    search.fit(
-        X, y,
-        verbose=2
-    )
-    print("Searching finished")
-
-    results = pd.DataFrame(search.cv_results_)
+                best_performer[sum(mae_values.values()) / len(mae_values.values())] = model_params
     
+    print(sorted(best_performer.items()))
 
-if __name__=="__main__":
+    ###########################
+    # Param search for Latency
+    ###########################
+    num_cols = [
+        'Latitude', 'Longitude',
+        'Latency', 'TXbitrate',
+        'RSRQ', 'RSRP', 'SINR', "CQI", 
+        "Latency_prediction", "Latency_difference", 
+        "RSRP_prediction", "RSRQ_prediction", "SINR_prediction", "CQI_prediction"
+    ]
+    input_features = [
+        # 'Latitude', 'Longitude',
+        'Latency', 'TXbitrate',
+        'RSRQ', 'RSRP', 'SINR', "CQI", 
+        "Latency_prediction", "Latency_difference", 
+        # "RSRP_prediction_new", "RSRQ_prediction_new", "SINR_prediction_new", "CQI_prediction_new"
+    ]
+    target_features = ["Latency_difference"]
+
+    best_performer = dict()
+
+    for lags, steps in [(10, 10), (20, 10), (30, 10), (60, 10), (20, 20), (30, 20), (60, 20), (30, 30), (60, 30), (60, 60)]:
+        train_dataloader = DataLoader.load_from_csv("data/difference_prediction/latency_train.csv", num_cols)
+        X_train, y_train = train_dataloader.process(input_features, target_features, lags, steps)
+
+        eval_dataloader = DataLoader.load_from_csv("data/difference_prediction/latency_eval_route_1.csv", num_cols, train_dataloader.imputer, train_dataloader.scaler)
+        X_eval, y_eval = eval_dataloader.process(input_features, target_features, lags, steps)
+        for n_estimators in [100, 200, 500, 1000, 2000]:
+            for max_depth in [4, 6, 8, 10]:
+
+                model_params = {
+                    "n_estimators": n_estimators,
+                    "max_depth": max_depth,
+                    "tree_method": "hist",
+                    "random_state": 42,
+                    "learning_rate": 0.1,
+                    "mode": "Latency", 
+                    "lags": lags, 
+                    "steps": steps,
+                    "model_dir": "./model"
+                }
+
+                print("Model Training...")
+
+                model = train(X_train, y_train, model_params)
+
+                _, _, _, mae_values, _, _ = eval_difference(model, X_eval, y_eval, eval_dataloader, "Latency", model_params)
+
+                best_performer[sum(mae_values.values()) / len(mae_values.values())] = model_params
+    
+    print(sorted(best_performer.items()))
+
+    sys.exit(0)
+
+if __name__ == "__main__":
     main()
