@@ -79,7 +79,7 @@ if __name__ == "__main__":
         "mode": "UL", 
         "lags": 60, 
         "steps": 60,
-        "model_dir": "model/final_paper"
+        "model_dir": "./model"
     }
 
     print("Model Training...")
